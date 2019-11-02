@@ -32,11 +32,11 @@ class FisherLD:
 
         if column_t < row_t:
             t = self.training_labels.T
-
         X_features = []
+
         if self.row_or_column == "row":
             for i in range(len(self.classes)):
-                X_features.append(X[:,t == self.classes[i]])
+                X_features.append(X[t == self.classes[i],:])
         else:
             for i in range(len(self.classes)):
                 X_features.append(X[t == self.classes[i],:].T)
@@ -57,13 +57,12 @@ class FisherLD:
         Sw = np.matrix(sum(S))
         Sb = sum(Sb)
 
-
         eig_vals, eig_vecs = np.linalg.eig(np.linalg.inv(Sw).dot(Sb))
         eig_dict = {}
 
         for i in range(len(eig_vals)):
             eigvec_sc = eig_vecs[:,i].reshape(self.no_of_features,1)
-            eig_dict[eig_vals[i].real] = eigvec_sc.real
+            eig_dict = {eig_vals[i].real: eigvec_sc.real}
 
         eig_vector = eig_dict[max([*eig_dict])]
 
@@ -77,17 +76,14 @@ class FisherLD:
             self.c.append(float((.5)*(Mu[i]+Mu[i+1]).dot(self.w)))
 
     def project_and_classify(self,X):
-        if X.shape[1] == self.w.shape[0]:
-            y_toclassify = np.asarray(np.dot(self.w.T,X.T)).reshape(-1)
-        else:
-            y_toclassify = np.asarray(np.dot(self.w.T,X)).reshape(-1)
+        y_toclassify = np.asarray(np.dot(self.w.T,X.T)).reshape(-1)
         y_legnth = len(y_toclassify)
         t = []
         for i in range(len(self.c)):
             for ii in y_toclassify:
-                if ii > self.c[i]:
+                if ii < self.c[i]:
                     t.append(self.classes[i])
-                y_toclassify = y_toclassify[y_toclassify < self.c[i]]
+                y_toclassify = y_toclassify[y_toclassify > self.c[i]]
 
         while len(t) < y_legnth:
             t.append(self.classes[-1])
@@ -104,7 +100,7 @@ class FisherLD:
         y = []
         for i in range(len(self.classes)):
             y.append(np.asarray(np.dot(self.w.T,X_features[i])).reshape(-1))
-        print(y)
+
         mvn = []
         p = []
         f, axes = plt.subplots(1, 1)
@@ -162,5 +158,5 @@ label_dict = {1: 'Setosa', 2: 'Versicolor', 3:'Virginica'}
 
 
 classifier = FisherLD(X,t)
-classifier.w
+classifier.c
 f, t = classifier.project_and_classify(X)
