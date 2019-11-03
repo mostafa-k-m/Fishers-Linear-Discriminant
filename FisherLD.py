@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import multivariate_normal
-
+from mpl_toolkits.mplot3d import Axes3D
 class FisherLD:
     def __init__(self, training_data, training_labels):
 
@@ -65,12 +65,17 @@ class FisherLD:
             eigvec_sc = eig_vecs[:,i].reshape(self.no_of_features,1)
             eig_dict[eig_vals[i].real] = eigvec_sc.real
 
-        eig_vector = eig_dict[max([*eig_dict])]
-        self.w = eig_vector.reshape(self.no_of_features,1)
+        self.w = {}
+        for i in range(len(self.classes)-1):
+            self.w[i] = (eig_dict.pop(max([*eig_dict])))
 
-        self.c = []
-        for i in range(1,len(self.classes)):
-            self.c.append(float((.5)*(Mu[i-1]+Mu[i]).dot(self.w)))
+        self.c = {}
+        for i in range(len(self.classes)-1):
+            inner_c = []
+            for ii in range(1,len(self.classes)):
+                inner_c.append(float((.5)*(Mu[ii-1]+Mu[ii]).dot(self.w[i])))
+            self.c[i] = inner_c
+
 
     def project_and_classify(self,X, t = [],plot = "line"):
         if t == []:
@@ -100,21 +105,40 @@ class FisherLD:
             for i in self.classes:
                 X_features.append(X[t == i,:].T)
 
-        y = []
+        y = {}
+        for i in range(len(self.classes)-1):
+            inner_y = []
+            for ii in range(len(self.classes)):
+                inner_y.append(np.asarray(np.dot((self.w[i]).T,X_features[ii])).reshape(-1))
+            y[i] = inner_y
+
+        """f, axes = plt.subplots(1, 1)
         for i in range(len(self.classes)):
-            y.append(np.asarray(np.dot(self.w.T,X_features[i])).reshape(-1))
+            if plot.lower() == "bar":
+                axes.bar(y[0][i], y[1][i],align='center', width=.1)
+            else:
+                axes.scatter(y[0][i], y[1][i])"""
+        y_sub = y
+        y = y_sub[0]+ y_sub[1]
 
         mvn = []
         p = []
-        f, axes = plt.subplots(1, 1)
+        f = plt.figure()
+        for i in range(0,4):
+            ax[f.add_subplot(2, 2, i+1, projection='3d')] = 45*i
+
         for i in range(len(self.classes)):
             mvn_now = multivariate_normal(np.mean(y[i]),np.cov(y[i]))
             p.append(mvn_now.pdf(y[i]))
-            if plot.lower() == "bar":
-                axes.bar(y[i], p[i],align='center', width=.1)
-            else:
-                axes.scatter(y[i], p[i])
+            for ii in ax:
+                ii.set_xlabel('X Label')
+                ii.set_ylabel('Y Label')
+                ii.set_zlabel('Z Label')
+                ii.view_init(None, ax.get(ii))
+                ii.scatter(y_sub[0][i], y_sub[1][i], p[i])
+        plt.show()
         return f, t
+
 
 
 
@@ -133,6 +157,7 @@ features = iris.data.T
 X = np.vstack((features[0], features[1]))
 t = iris.target
 classifier = FisherLD(X,t)
+classifier.w[1]
 classifier.c
 f, t = classifier.project_and_classify(X,t)
 
