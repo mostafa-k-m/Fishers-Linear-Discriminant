@@ -69,30 +69,29 @@ class FisherLD:
         self.w = eig_vector.reshape(self.no_of_features,1)
 
         self.c = []
-        for i in range(len(self.classes)-1):
-            if i == self.no_of_features:
-                break
+        for i in range(1,len(self.classes)):
+            self.c.append(float((.5)*(Mu[i-1]+Mu[i]).dot(self.w)))
 
-            self.c.append(float((.5)*(Mu[i]+Mu[i+1]).dot(self.w)))
+    def project_and_classify(self,X, t = [],plot = "line"):
+        if t == []:
+            if X.shape[1] == self.w.shape[0]:
+                y_toclassify = np.asarray(np.dot(self.w.T,X.T)).reshape(-1)
+            else:
+                y_toclassify = np.asarray(np.dot(self.w.T,X)).reshape(-1)
+            y_legnth = len(y_toclassify)
+            print(y_toclassify)
+            t = []
+            for i in range(len(self.c)):
+                for ii in y_toclassify:
+                    if ii < self.c[i]:
+                        t.append(self.classes[i])
+                    y_toclassify = y_toclassify[y_toclassify > self.c[i]]
 
-    def project_and_classify(self,X):
-        if X.shape[1] == self.w.shape[0]:
-            y_toclassify = np.asarray(np.dot(self.w.T,X.T)).reshape(-1)
-        else:
-            y_toclassify = np.asarray(np.dot(self.w.T,X)).reshape(-1)
-        y_legnth = len(y_toclassify)
-        print(y_toclassify)
-        t = []
-        for i in range(len(self.c)):
-            for ii in y_toclassify:
-                if ii < self.c[i]:
-                    t.append(self.classes[i])
-                y_toclassify = y_toclassify[y_toclassify > self.c[i]]
+            while len(t) < y_legnth:
+                t.append(self.classes[-1])
+            if not isinstance(X,(np.ndarray, np.generic)):
+                X = X.values
 
-        while len(t) < y_legnth:
-            t.append(self.classes[-1])
-        if not isinstance(X,(np.ndarray, np.generic)):
-            X = X.values
         X_features = []
         if self.row_or_column == "row":
             for i in self.classes:
@@ -111,7 +110,10 @@ class FisherLD:
         for i in range(len(self.classes)):
             mvn_now = multivariate_normal(np.mean(y[i]),np.cov(y[i]))
             p.append(mvn_now.pdf(y[i]))
-            sns.lineplot(y[i], p[i], ax=axes)
+            if plot.lower() == "bar":
+                axes.bar(y[i], p[i],align='center', width=.1)
+            else:
+                axes.scatter(y[i], p[i])
         return f, t
 
 
@@ -131,7 +133,8 @@ features = iris.data.T
 X = np.vstack((features[0], features[1]))
 t = iris.target
 classifier = FisherLD(X,t)
-f, t = classifier.project_and_classify(X)
+classifier.c
+f, t = classifier.project_and_classify(X,t)
 
 
 
@@ -148,7 +151,7 @@ f, t = classifier.project_and_classify(X)
 
 
 
-Data=np.loadtxt('Data1.txt')
+    Data=np.loadtxt('Data1.txt')
 X = Data[:,0:2]
 t = Data[:,2]
 classifier = FisherLD(X,t)
