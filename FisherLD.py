@@ -66,7 +66,6 @@ class FisherLD:
             eig_dict[eig_vals[i].real] = eigvec_sc.real
 
         eig_vector = eig_dict[max([*eig_dict])]
-
         self.w = eig_vector.reshape(self.no_of_features,1)
 
         self.c = []
@@ -82,12 +81,13 @@ class FisherLD:
         else:
             y_toclassify = np.asarray(np.dot(self.w.T,X)).reshape(-1)
         y_legnth = len(y_toclassify)
+        print(y_toclassify)
         t = []
         for i in range(len(self.c)):
             for ii in y_toclassify:
-                if ii > self.c[i]:
+                if ii < self.c[i]:
                     t.append(self.classes[i])
-                y_toclassify = y_toclassify[y_toclassify < self.c[i]]
+                y_toclassify = y_toclassify[y_toclassify > self.c[i]]
 
         while len(t) < y_legnth:
             t.append(self.classes[-1])
@@ -96,7 +96,7 @@ class FisherLD:
         X_features = []
         if self.row_or_column == "row":
             for i in self.classes:
-                X_features.append(X[t == i,:])
+                X_features.append(X[:,t == i])
         else:
             for i in self.classes:
                 X_features.append(X[t == i,:].T)
@@ -104,7 +104,7 @@ class FisherLD:
         y = []
         for i in range(len(self.classes)):
             y.append(np.asarray(np.dot(self.w.T,X_features[i])).reshape(-1))
-        print(y)
+
         mvn = []
         p = []
         f, axes = plt.subplots(1, 1)
@@ -113,6 +113,35 @@ class FisherLD:
             p.append(mvn_now.pdf(y[i]))
             sns.lineplot(y[i], p[i], ax=axes)
         return f, t
+
+
+
+
+
+
+
+
+
+
+
+from sklearn.datasets import load_iris
+import matplotlib.pyplot as plt
+iris = load_iris()
+features = iris.data.T
+X = np.vstack((features[0], features[1]))
+t = iris.target
+classifier = FisherLD(X,t)
+f, t = classifier.project_and_classify(X)
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -146,7 +175,6 @@ df = pd.io.parsers.read_csv(
 df.columns = [l for i,l in sorted(feature_dict.items())] + ['class label']
 df.dropna(how="all", inplace=True) # to drop the empty line at file-end
 
-df.tail()
 
 
 X = df[["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"]]
@@ -163,4 +191,5 @@ label_dict = {1: 'Setosa', 2: 'Versicolor', 3:'Virginica'}
 
 classifier = FisherLD(X,t)
 classifier.w
+classifier.c
 f, t = classifier.project_and_classify(X)
