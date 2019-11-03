@@ -117,6 +117,8 @@ class FisherLD:
         return f, t
 
     def threeX(self,X, t):
+        if not isinstance(X,(np.ndarray, np.generic)):
+            X = X.values
         X_features = []
         if self.row_or_column == "row":
             for i in self.classes:
@@ -192,6 +194,8 @@ iris = load_iris()
 features = iris.data.T
 X = np.vstack((features[0], features[1]))
 t = iris.target
+X
+t
 classifier = FisherLD(X,t)
 f = classifier.project_and_classify(X,t)
 
@@ -228,6 +232,7 @@ df.dropna(how="all", inplace=True) # to drop the empty line at file-end
 
 X = df[["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"]]
 t = df["class label"]
+X
 
 from sklearn.preprocessing import LabelEncoder
 
@@ -239,5 +244,5 @@ label_dict = {1: 'Setosa', 2: 'Versicolor', 3:'Virginica'}
 
 
 classifier = FisherLD(X,t)
-
+t
 f = classifier.project_and_classify(X, t)
