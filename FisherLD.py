@@ -21,7 +21,6 @@ class FisherLD:
             x = np.array(list1)
             return list(x)
         self.classes = sorted(list(set(training_labels)))
-
         self.train_fisherLD()
 
 
@@ -76,15 +75,15 @@ class FisherLD:
                 inner_c.append(float((.5)*(Mu[ii-1]+Mu[ii]).dot(self.w[i])))
             self.c[i] = inner_c
 
-
-    def project_and_classify(self,X, t = [],plot = "line"):
+    def twoX(self,X, t = []):
+        self.c = self.c[0]
+        self.w = self.w[0]
         if t == []:
             if X.shape[1] == self.w.shape[0]:
                 y_toclassify = np.asarray(np.dot(self.w.T,X.T)).reshape(-1)
             else:
                 y_toclassify = np.asarray(np.dot(self.w.T,X)).reshape(-1)
             y_legnth = len(y_toclassify)
-            print(y_toclassify)
             t = []
             for i in range(len(self.c)):
                 for ii in y_toclassify:
@@ -96,7 +95,28 @@ class FisherLD:
                 t.append(self.classes[-1])
             if not isinstance(X,(np.ndarray, np.generic)):
                 X = X.values
+        X_features = []
+        if self.row_or_column == "row":
+            for i in self.classes:
+                X_features.append(X[t == i,:])
+        else:
+            for i in self.classes:
+                X_features.append(X[t == i,:].T)
 
+        y = []
+        for i in range(len(self.classes)):
+            y.append(np.asarray(np.dot(self.w.T,X_features[i])).reshape(-1))
+
+        mvn = []
+        p = []
+        f, axes = plt.subplots(1, 1)
+        for i in range(len(self.classes)):
+            mvn_now = multivariate_normal(np.mean(y[i]),np.cov(y[i]))
+            p.append(mvn_now.pdf(y[i]))
+            sns.lineplot(y[i], p[i], ax=axes)
+        return f, t
+
+    def threeX(self,X, t):
         X_features = []
         if self.row_or_column == "row":
             for i in self.classes:
@@ -110,34 +130,50 @@ class FisherLD:
             inner_y = []
             for ii in range(len(self.classes)):
                 inner_y.append(np.asarray(np.dot((self.w[i]).T,X_features[ii])).reshape(-1))
-            y[i] = inner_y
+            y[i] = np.array(inner_y)
 
-        """f, axes = plt.subplots(1, 1)
+        classes = []
+        inner = []
         for i in range(len(self.classes)):
-            if plot.lower() == "bar":
-                axes.bar(y[0][i], y[1][i],align='center', width=.1)
-            else:
-                axes.scatter(y[0][i], y[1][i])"""
-        y_sub = y
-        y = y_sub[0]+ y_sub[1]
+            for ii in range(len(self.classes)-1):
+                inner.append(y[ii][i])
+            classes.append(np.array(inner))
+            inner = []
 
         mvn = []
         p = []
         f = plt.figure()
+        ax = {}
         for i in range(0,4):
             ax[f.add_subplot(2, 2, i+1, projection='3d')] = 45*i
-
+        w_s = []
         for i in range(len(self.classes)):
-            mvn_now = multivariate_normal(np.mean(y[i]),np.cov(y[i]))
-            p.append(mvn_now.pdf(y[i]))
-            for ii in ax:
-                ii.set_xlabel('X Label')
-                ii.set_ylabel('Y Label')
-                ii.set_zlabel('Z Label')
-                ii.view_init(None, ax.get(ii))
-                ii.scatter(y_sub[0][i], y_sub[1][i], p[i])
+            class_handeled = classes[i]
+            for ii in range(len(self.classes)-1):
+                w_s.append(class_handeled[ii,:])
+            pos = np.dstack(w_s)
+            Mu_class = []
+            cov_class = []
+            for iii in range(len(w_s)):
+                Mu_class.append(np.mean(w_s[iii]))
+                cov_class.append(np.cov(w_s[iii]))
+            mvn_now = multivariate_normal(Mu_class, cov_class)
+            p.append(mvn_now.pdf(pos))
+            for iiii in ax:
+                iiii.set_xlabel('X Label')
+                iiii.set_ylabel('Y Label')
+                iiii.set_zlabel('Z Label')
+                iiii.view_init(None, ax.get(iiii))
+                iiii.scatter(class_handeled[0], class_handeled[1], p[i])
         plt.show()
-        return f, t
+        return f
+
+    def project_and_classify(self,X, t = []):
+        if len(self.classes) == 3:
+            return self.threeX(X, t)
+        elif len(self.classes) == 2:
+            return self.twoX(X, t)
+
 
 
 
@@ -157,26 +193,11 @@ features = iris.data.T
 X = np.vstack((features[0], features[1]))
 t = iris.target
 classifier = FisherLD(X,t)
-classifier.w[1]
-classifier.c
-f, t = classifier.project_and_classify(X,t)
+f = classifier.project_and_classify(X,t)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    Data=np.loadtxt('Data1.txt')
+Data=np.loadtxt('Data1.txt')
 X = Data[:,0:2]
 t = Data[:,2]
 classifier = FisherLD(X,t)
@@ -218,6 +239,5 @@ label_dict = {1: 'Setosa', 2: 'Versicolor', 3:'Virginica'}
 
 
 classifier = FisherLD(X,t)
-classifier.w
-classifier.c
-f, t = classifier.project_and_classify(X)
+
+f = classifier.project_and_classify(X, t)
