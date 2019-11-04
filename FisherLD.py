@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy.stats import multivariate_normal
+import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.stats import multivariate_normal
+
 class FisherLD:
     def __init__(self, training_data, training_labels):
-
         self.training_data = np.matrix(training_data)
         self.training_labels = training_labels
 
@@ -22,6 +22,7 @@ class FisherLD:
             return list(x)
         self.classes = sorted(list(set(training_labels)))
         self.train_fisherLD()
+        self.project_on_reduced_dimensions(training_data, training_labels, training_run = True)
 
 
     def train_fisherLD(self):
@@ -75,26 +76,43 @@ class FisherLD:
                 inner_c.append(float((.5)*(Mu[ii-1]+Mu[ii]).dot(self.w[i])))
             self.c[i] = inner_c
 
-    def twoX(self,X, t = []):
-        self.c = self.c[0]
-        self.w = self.w[0]
-        if t == []:
-            if X.shape[1] == self.w.shape[0]:
-                y_toclassify = np.asarray(np.dot(self.w.T,X.T)).reshape(-1)
-            else:
-                y_toclassify = np.asarray(np.dot(self.w.T,X)).reshape(-1)
-            y_legnth = len(y_toclassify)
-            t = []
-            for i in range(len(self.c)):
-                for ii in y_toclassify:
-                    if ii < self.c[i]:
-                        t.append(self.classes[i])
-                    y_toclassify = y_toclassify[y_toclassify > self.c[i]]
 
-            while len(t) < y_legnth:
-                t.append(self.classes[-1])
-            if not isinstance(X,(np.ndarray, np.generic)):
-                X = X.values
+    def classify(self, X):
+        if not isinstance(X,(np.ndarray, np.generic)):
+            X = X.values
+        if self.row_or_column == "row":
+            X = np.matrix(X)
+        else:
+            X = np.matrix(X).T
+        length = X.shape[1]
+        if len(self.classes) == 2:
+            y = (np.asarray(np.dot((self.w[0]).T,X)).reshape(-1))
+
+            mvn = self.mvn
+            p_dict = {}
+            for i in range(len(self.classes)):
+                mvn_now = mvn[i]
+                p_dict[i] = mvn_now.pdf(y)
+        else:
+            y = []
+            for i in range(len(self.classes)-1):
+                y.append(np.asarray(np.dot((self.w[i]).T,X)).reshape(-1))
+            pos = np.dstack(y)
+            mvn = self.mvn
+            p_dict = {}
+            for i in range(len(self.classes)):
+                mvn_now = mvn[i]
+                p_dict[i] = mvn_now.pdf(pos)
+        t = []
+        for i in range(length):
+            cursor = [p_dict[ii][i] for ii in range(len(self.classes))]
+            t.append(self.classes[cursor.index(max(cursor))])
+        return np.array(t)
+
+    def two_X(self,X, t, training_run = False):
+        self.c = self.c
+        if not isinstance(X,(np.ndarray, np.generic)):
+            X = X.values
         X_features = []
         if self.row_or_column == "row":
             for i in self.classes:
@@ -105,18 +123,33 @@ class FisherLD:
 
         y = []
         for i in range(len(self.classes)):
-            y.append(np.asarray(np.dot(self.w.T,X_features[i])).reshape(-1))
+            y.append(np.asarray(np.dot(self.w[0].T,X_features[i])).reshape(-1))
 
         mvn = []
         p = []
-        f, axes = plt.subplots(1, 1)
+        f = plt.figure(figsize = (12, 6))
+        axes1 = plt.subplot(1, 2, 1)
+        axes1.set_xlabel('Reduced Dimension 1')
+        axes1.set_ylabel('Probability')
+        axes1.set_title('Gausian Distribution')
         for i in range(len(self.classes)):
             mvn_now = multivariate_normal(np.mean(y[i]),np.cov(y[i]))
             p.append(mvn_now.pdf(y[i]))
-            sns.lineplot(y[i], p[i], ax=axes)
-        return f, t
+            axes1.scatter(y[i], p[i],label = f"Class: {i}")
+            mvn.append(mvn_now)
+        if training_run:
+            self.mvn = mvn
 
-    def threeX(self,X, t):
+        axes2 = plt.subplot(1, 2, 2)
+        axes2.set_xlabel('Reduced Dimension 1')
+        axes2.set_ylabel('Number of observasion with the reduced value')
+        axes2.set_title('Projection on reduced dimensions')
+        axes2.hist(tuple(y),15)
+        handles, labels = axes1.get_legend_handles_labels()
+        f.legend(handles, labels, loc='upper center')
+        return f
+
+    def more_than_two_X(self,X, t, training_run = False):
         if not isinstance(X,(np.ndarray, np.generic)):
             X = X.values
         X_features = []
@@ -141,108 +174,74 @@ class FisherLD:
                 inner.append(y[ii][i])
             classes.append(np.array(inner))
             inner = []
+        if len(self.classes) == 3:
+            f1 = plt.figure(figsize = (12, 12))
+            f1.suptitle('Multivariate Guasian Distribution', fontsize=16)
+            ax = {}
+            for i in range(0,4):
+                ax[f1.add_subplot(2, 2, i+1, projection='3d')] = 45*i
+            f2 = plt.figure(figsize = (12, 12))
+            f2.suptitle('Projection on reduced dimensions', fontsize=16)
+
+            gs = GridSpec(4,4)
+
+            ax_joint = f2.add_subplot(gs[1:4,0:3])
+            ax_marg_x = f2.add_subplot(gs[0,0:3])
+            ax_marg_y = f2.add_subplot(gs[1:4,3])
 
         mvn = []
         p = []
-        f = plt.figure()
-        ax = {}
-        for i in range(0,4):
-            ax[f.add_subplot(2, 2, i+1, projection='3d')] = 45*i
-        w_s = []
+
+
         for i in range(len(self.classes)):
             class_handeled = classes[i]
+            y_for_each_w = []
             for ii in range(len(self.classes)-1):
-                w_s.append(class_handeled[ii,:])
-            pos = np.dstack(w_s)
+                y_for_each_w.append(class_handeled[ii,:])
+            pos = np.dstack(y_for_each_w)
             Mu_class = []
             cov_class = []
-            for iii in range(len(w_s)):
-                Mu_class.append(np.mean(w_s[iii]))
-                cov_class.append(np.cov(w_s[iii]))
+            for iii in range(len(y_for_each_w)):
+                Mu_class.append(np.mean(y_for_each_w[iii]))
+                cov_class.append(np.cov(y_for_each_w[iii]))
             mvn_now = multivariate_normal(Mu_class, cov_class)
             p.append(mvn_now.pdf(pos))
-            for iiii in ax:
-                iiii.set_xlabel('X Label')
-                iiii.set_ylabel('Y Label')
-                iiii.set_zlabel('Z Label')
-                iiii.view_init(None, ax.get(iiii))
-                iiii.scatter(class_handeled[0], class_handeled[1], p[i])
-        plt.show()
-        return f
+            mvn.append(mvn_now)
+            if len(self.classes) == 3:
+                for iiii in ax:
+                    iiii.set_xlabel('Reduced Dimension 1')
+                    iiii.set_ylabel('Reduced Dimension 2')
+                    iiii.set_zlabel('Probability')
+                    iiii.view_init(None, ax.get(iiii))
+                    iiii.scatter(class_handeled[0], class_handeled[1], p[i], label = f"Class: {i}")
+                    handles, labels = iiii.get_legend_handles_labels()
+                f1.legend(handles, labels, loc='lower center')
+                ax_joint.scatter(class_handeled[0],class_handeled[1])
+                ax_marg_x.hist(class_handeled[0])
+                ax_marg_y.hist(class_handeled[1],orientation="horizontal")
 
-    def project_and_classify(self,X, t = []):
+                # Turn off tick labels on marginals
+                plt.setp(ax_marg_x.get_xticklabels(), visible=False)
+                plt.setp(ax_marg_y.get_yticklabels(), visible=False)
+
+                # Set labels on joint
+                ax_joint.set_xlabel('Reduced Dimension 1 (Y1)')
+                ax_joint.set_ylabel('Reduced Dimension 2 (Y2)')
+
+                # Set labels on marginals
+                ax_marg_y.set_xlabel('Y2 Point Distribution')
+                ax_marg_x.set_ylabel('Y1 Point Distribution')
+                f2.legend(handles, labels, loc='lower center')
+        if training_run:
+            self.mvn = mvn
         if len(self.classes) == 3:
-            return self.threeX(X, t)
+            plt.show()
+            return f
+        else:
+            print("The model is trained. However we can't show the projection visually because the number of reduced dimensions is equal to or more than three. \nThe model is ready to classify new observations.")
+
+    def project_on_reduced_dimensions(self,X, t, training_run = False):
+        if len(self.classes) > 2:
+            return self.more_than_two_X(X, t, training_run)
         elif len(self.classes) == 2:
-            return self.twoX(X, t)
-
-
-
-
-
-
-
-
-
-
-
-
-
-from sklearn.datasets import load_iris
-import matplotlib.pyplot as plt
-iris = load_iris()
-features = iris.data.T
-X = np.vstack((features[0], features[1]))
-t = iris.target
-X
-t
-classifier = FisherLD(X,t)
-f = classifier.project_and_classify(X,t)
-
-
-
-Data=np.loadtxt('Data1.txt')
-X = Data[:,0:2]
-t = Data[:,2]
-classifier = FisherLD(X,t)
-TestData = np.loadtxt('Test1.txt')
-X_test = np.matrix(TestData)
-classifier.c
-f, t = classifier.project_and_classify(X_test)
-
-
-
-import pandas as pd
-feature_dict = {i:label for i,label in zip(
-                range(4),
-                  ('sepal length in cm',
-                  'sepal width in cm',
-                  'petal length in cm',
-                  'petal width in cm', ))}
-
-df = pd.io.parsers.read_csv(
-    filepath_or_buffer='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data',
-    header=None,
-    sep=',',
-    )
-df.columns = [l for i,l in sorted(feature_dict.items())] + ['class label']
-df.dropna(how="all", inplace=True) # to drop the empty line at file-end
-
-
-
-X = df[["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"]]
-t = df["class label"]
-X
-
-from sklearn.preprocessing import LabelEncoder
-
-enc = LabelEncoder()
-label_encoder = enc.fit(t)
-t = label_encoder.transform(t) + 1
-
-label_dict = {1: 'Setosa', 2: 'Versicolor', 3:'Virginica'}
-
-
-classifier = FisherLD(X,t)
-t
-f = classifier.project_and_classify(X, t)
+            return self.two_X(X, t, training_run)
