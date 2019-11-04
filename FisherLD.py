@@ -236,7 +236,7 @@ class FisherLD:
             self.mvn = mvn
         if len(self.classes) == 3:
             plt.show()
-            return f
+            return f1, f2
         else:
             print("The model is trained. However we can't show the projection visually because the number of reduced dimensions is equal to or more than three. \nThe model is ready to classify new observations.")
 
@@ -245,40 +245,3 @@ class FisherLD:
             return self.more_than_two_X(X, t, training_run)
         elif len(self.classes) == 2:
             return self.two_X(X, t, training_run)
-import pandas as pd
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-feature_dict = {i:label for i,label in zip(
-                range(4),
-                  ('sepal length in cm',
-                  'sepal width in cm',
-                  'petal length in cm',
-                  'petal width in cm', ))}
-
-df = pd.io.parsers.read_csv(
-    filepath_or_buffer='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data',
-    header=None,
-    sep=',',
-    )
-df.columns = [l for i,l in sorted(feature_dict.items())] + ['class label']
-df.dropna(how="all", inplace=True) # to drop the empty line at file-end
-
-
-
-X = df[["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"]]
-t = df["class label"]
-
-
-
-
-enc = LabelEncoder()
-label_encoder = enc.fit(t)
-t = label_encoder.transform(t) + 1
-
-label_dict = {1: 'Setosa', 2: 'Versicolor', 3:'Virginica'}
-train_data, test_data, train_lbl, test_lbl = train_test_split(X, t, test_size = 0.2, random_state = 100)
-classifier = FisherLD(X,t)
-
-t = classifier.classify(X)
-
-f = classifier.project_on_reduced_dimensions(X,t)
