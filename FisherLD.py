@@ -183,7 +183,7 @@ class FisherLD:
             f2 = plt.figure(figsize = (12, 12))
             f2.suptitle('Projection on reduced dimensions', fontsize=16)
 
-            gs = GridSpec(4,4)
+            gs = gridspec(4,4)
 
             ax_joint = f2.add_subplot(gs[1:4,0:3])
             ax_marg_x = f2.add_subplot(gs[0,0:3])
