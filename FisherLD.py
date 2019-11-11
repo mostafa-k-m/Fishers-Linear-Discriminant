@@ -144,7 +144,8 @@ class FisherLD:
         axes2.set_xlabel('Reduced Dimension 1')
         axes2.set_ylabel('Number of observasion with the reduced value')
         axes2.set_title('Projection on reduced dimensions')
-        axes2.hist(tuple(y),15)
+        for i in range(len(self.classes)):
+            axes2.hist(y[i],12)
         handles, labels = axes1.get_legend_handles_labels()
         f.legend(handles, labels, loc='upper center')
         return f
