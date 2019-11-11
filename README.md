@@ -1,6 +1,8 @@
 # Fisher's Linear Discriminant
 ### This is a project made to practice _NU CIT-651_ machine learning course's curriculum.
 
+In this project, a FisherLD class was created from scratch. It can be used to project data points C-1 reduced dimensions where C is the number of classes as long as C <= 3. It can also classify new points regardless of C and number of features. However higher values will affect accuracy.
+
 We start by imporing FisherLD class, as well as numpy, because we will use it to import some data in the next cell.
 
 
@@ -26,8 +28,14 @@ train_lbls = Data[:,2]
 classifier = FisherLD(train_data,train_lbls)
 ```
 
+    [[79.41076319 -8.5763391 ]
+     [-8.5763391   2.39415048]]
+    [[0.27593792 0.6174341 ]
+     [0.6174341  1.3815603 ]]
 
-![png](output_3_0.png)
+
+
+![png](output_3_1.png)
 
 
 Now we will import the test data points as **_test_data_** and their labels as **_test_lbls_**.
@@ -63,11 +71,11 @@ print(f"Accuracy of predicted labels = {Accuracy}%")
 
 
 ## Testing the model on a three-class, four-feature dataset
-This is the Iris dataset that is bundled with Sci-Kit learn. We will import four features from the dataset :
+For this we will use the Iris dataset. We will import four features from the dataset :
 1. Sepal Length in cm
 2. Sepal Width in cm
-3. Petal WLength in cm
-4. Petal idth in cm
+3. Petal Length in cm
+4. Petal Width in cm
 
 We will import our points points as **_X_** and their labels as **_t_**.
 
@@ -119,12 +127,22 @@ train_data, test_data, train_lbls, test_lbls = train_test_split(X, t, test_size 
 classifier = FisherLD(train_data,train_lbls)
 ```
 
-
-![png](output_11_0.png)
+    [[0.81170833 0.3241064  0.49562805 0.1093856 ]
+     [0.3241064  0.36172359 0.20017805 0.11462278]
+     [0.49562805 0.20017805 0.54396335 0.13102065]
+     [0.1093856  0.11462278 0.13102065 0.13465207]]
+    [[0.19539076 0.45782305 0.14571367 0.54843763]
+     [0.45782305 1.95088034 1.17689596 2.14274492]
+     [0.14571367 1.17689596 0.90353659 1.22501055]
+     [0.54843763 2.14274492 1.22501055 2.37710951]]
 
 
 
 ![png](output_11_1.png)
+
+
+
+![png](output_11_2.png)
 
 
 We will use **_classify_** again, to get the model to classify our test data. We will name the labels that our model outputs simply _**t**_.
