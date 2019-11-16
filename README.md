@@ -1,5 +1,4 @@
 # Fisher's Linear Discriminant
-### This is a project made to practice _NU CIT-651_ machine learning course's curriculum.
 
 In this project, a FisherLD class was created from scratch. It can be used to project data points C-1 reduced dimensions where C is the number of classes as long as C <= 3. It can also classify new points regardless of C and number of features. However higher values will affect accuracy.
 
